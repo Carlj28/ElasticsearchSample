@@ -1,0 +1,356 @@
+#GET all indexes
+GET _cat/indices
+
+#CREATE index with mapping
+PUT watch_list?pretty
+{
+  "mappings": { 
+    "movie": {
+      "properties": { 
+      "title": {
+        "type": "text"
+      },
+      "description": {
+        "type": "text"
+      },
+      "date_of_release": {
+        "type": "date",
+        "format": "YYYY-MM-DD"
+      },
+      "genre": {
+        "type": "text"
+      }
+      }
+    }
+  }
+}
+
+#GET mappings for index
+GET watch_list/_mapping
+
+#DELETE index
+DELETE /watch_list
+
+#Five core data types:
+#---------
+#string
+#numbers float/double/byte/short/integer/long
+#boolean true/false
+#date UTC by default
+#binary eg. images/stored in base64
+#---------
+
+#POST some data
+POST watch_list/movie
+{
+  "date_of_release" : "2018-02-28",
+  "description" : "Birthday movie!",
+  "genre" : "Comedy",
+  "title" : "Birthday time!!"
+}
+
+#POST another data
+POST watch_list/movie
+{
+  "date_of_release" : "2018-03-28",
+  "description" : "Car movie",
+  "genre" : "Horror",
+  "title" : "Autonomic car rampage 8"
+}
+
+#GET all data back!
+GET watch_list/movie/_search
+
+#POST data and specify id to 1
+POST watch_list/movie/1
+{
+  "date_of_release" : "2018-04-28",
+  "description" : "IT movie",
+  "genre" : "Horror",
+  "title" : "IT guys go rampage 10"
+}
+
+#GET data by id
+GET watch_list/movie/1
+
+#CREATE index with _source enabled
+PUT test_source?pretty
+{
+  "mappings": { 
+    "movie": {
+      "_source": {
+        "enabled": false
+      }, 
+      "properties": { 
+      "title": {
+        "type": "text",
+        "store": true
+      },
+      "description": {
+        "type": "text"
+      },
+      "date_of_release": {
+        "type": "date",
+        "format": "YYYY-MM-DD"
+      },
+      "genre": {
+        "type": "text"
+      }
+      }
+    }
+  }
+}
+
+POST test_source/movie/1
+{
+  "date_of_release" : "2018-04-28",
+  "description" : "IT movie",
+  "genre" : "Horror",
+  "title" : "IT guys go rampage 10"
+}
+
+#now we are only storing totle field
+GET test_source/movie/1?stored_fields=title
+
+#we dont get a genre!
+GET test_source/movie/1?stored_fields=title,genre
+
+#ROUTING obsolete?
+PUT test_routing?pretty
+{
+  "mappings": { 
+    "movie": {
+      "_routing": {
+        "required": true,
+        "path": "title"
+      }, 
+      "properties": { 
+      "title": {
+        "type": "text"
+      },
+      "description": {
+        "type": "text"
+      },
+      "date_of_release": {
+        "type": "date",
+        "format": "YYYY-MM-DD"
+      },
+      "genre": {
+        "type": "text"
+      }
+      }
+    }
+  }
+}
+
+#ADD ALIAS
+
+PUT watch_list_1?pretty
+{
+  "mappings": { 
+    "movie": {
+      "properties": { 
+      "title": {
+        "type": "text"
+      },
+      "description": {
+        "type": "text"
+      },
+      "date_of_release": {
+        "type": "date",
+        "format": "YYYY-MM-DD"
+      },
+      "genre": {
+        "type": "text"
+      }
+      }
+    }
+  }
+}
+
+PUT watch_list_2?pretty
+{
+  "mappings": { 
+    "movie": {
+      "properties": { 
+      "title": {
+        "type": "text"
+      },
+      "description": {
+        "type": "text"
+      },
+      "date_of_release": {
+        "type": "date",
+        "format": "YYYY-MM-DD"
+      },
+      "genre": {
+        "type": "text"
+      }
+      }
+    }
+  }
+}
+
+#POST some data
+POST watch_list_1/movie
+{
+  "date_of_release" : "2018-02-28",
+  "description" : "Birthday movie!",
+  "genre" : "Comedy",
+  "title" : "Birthday time!!"
+}
+
+#POST another data
+POST watch_list_2/movie
+{
+  "date_of_release" : "2018-03-28",
+  "description" : "Car movie",
+  "genre" : "Horror",
+  "title" : "Autonomic car rampage 8"
+}
+
+#Add aliases to two indexes
+PUT _alias
+{
+  "actions" : [
+    {
+      "add" : {
+        "index" : "watch_list_1", "alias" : "test_alias"
+      }
+    }
+    ]
+}
+
+PUT _alias
+{
+  "actions" : [
+    {
+      "add" : {
+        "index" : "watch_list", "alias" : "test_alias"
+      }
+    }
+    ]
+}
+
+PUT _alias
+{
+  "actions" : [
+    {
+      "add" : {
+        "index" : "watch_list_2", "alias" : "test_alias"
+      }
+    }
+    ]
+}
+
+#search by alias in two indexes
+GET test_alias/_search
+
+#Querying
+#find movies that genre CONTAINS comedy string
+GET watch_list/movie/_search?q=genre:comedy
+
+#search by json (DSL)
+GET watch_list/movie/_search
+{
+    "query": {
+      "match": {
+        "genre": "CoMeDy"
+      }
+    }
+}
+
+#search exact
+GET watch_list/movie/_search
+{
+    "query": {
+      "match_phrase": {
+        "title": "birthday time!!"
+      }
+    }
+}
+
+#filter
+GET watch_list/movie/_search
+{
+  "query": {
+    "bool":{
+      "must":
+      {
+        "match":{
+          "genre": "comedy"
+        }
+      },
+      "filter": {
+        "range": {
+          "date_of_release":{
+            "gt": "2018-02-27"
+          }
+        }
+      }
+    }
+  }
+}
+
+#highlighting
+GET watch_list/movie/_search
+{
+    "query" : {
+        "match": { "description": "movie" }
+    },
+    "highlight" : {
+        "fields" : {
+            "description" : {}
+        }
+    }
+}
+
+#aggregations
+GET watch_list/movie/_search
+{
+    "aggs" : {
+        "all_descs" : {
+            "terms" : { "field" : "title" }
+        }
+    }
+}
+
+#test standard analyzer
+GET _analyze
+{
+  "analyzer" : "standard",
+  "text" : "this is a test(string) !! Nice"
+}
+
+#test whitespace analyzer
+GET _analyze
+{
+  "analyzer" : "whitespace",
+  "text" : "this is a test(string) !! Nice"
+}
+
+#define what analyzer is to use
+PUT watch_list?pretty
+{
+  "mappings": { 
+    "movie": {
+      "properties": { 
+      "title": {
+        "type": "text",
+        "analyzer": "standard"
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "whitespace"
+      },
+      "date_of_release": {
+        "type": "date",
+        "format": "YYYY-MM-DD"
+      },
+      "genre": {
+        "type": "text"
+      }
+      }
+    }
+  }
+}
