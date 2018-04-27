@@ -1,0 +1,44 @@
+#To search by lowercase keyword we need to use normalizer:
+
+PUT watch_list_lowercase
+{
+  "settings":{
+    "analysis": {
+      "normalizer":{
+        "my_lowercase_normalizer":{
+          "type": "custom",
+          "char_filter": [],
+          "filter": "lowercase"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "lowercase_movie":{
+      "properties": {
+        "name": {
+          "type": "keyword",
+          "normalizer": "my_lowercase_normalizer"
+        }
+      }
+    }
+  }
+}
+
+#POST some data
+POST watch_list_lowercase/lowercase_movie
+{
+  "name" : "TesT NaMe"
+}
+
+#now search bu lowercase
+GET watch_list_lowercase/lowercase_movie/_search
+{
+  "query": {
+    "term": {
+      "name": {
+        "value": "test name"
+      }
+    }
+  }
+}
